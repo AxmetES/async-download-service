@@ -20,7 +20,7 @@ async def check_directory_exists(path):
 
 async def archive(request):
     response = web.StreamResponse()
-    archive_hash = request.match_info.get('archive_hash', None)
+    archive_hash = request.match_info['archive_hash']
     response.headers['Content-Disposition'] = f'attachment; filename=f"{archive_hash}"'
     response.headers['Content-Type'] = 'application/zip'
     await response.prepare(request)
@@ -42,13 +42,13 @@ async def archive(request):
             logging.info('Sending archive chunk ...')
             await response.write(data)
             await asyncio.sleep(5)
-
         await response.write_eof()
-
     except asyncio.CancelledError:
         logging.exception("Download was interrupted.")
+        raise
     except BaseException as e:
-        process.kill()
+        if process.returncode:
+            process.kill()
         await process.communicate()
         logging.exception(e)
     finally:
